@@ -10,44 +10,19 @@ def reset():
 	# Remove the source_files folder
 	shutil.rmtree("source_files", ignore_errors=True)
 
-# Set the page configuration
-st.set_page_config(page_title="Inventory Visualizer",
-				   page_icon=":bar_chart:",
-				   layout="centered")
-# Reset the web app
-reset()
-# Define the title of the web app
-st.title("Inventory Visualizer")
-# File uploader
-ob_report_file = st.file_uploader("Upload Outbound Report", type=["xlsx"])
-weekly_inventory_file = st.file_uploader("Upload Weekly Inventory Report", type=["xlsx"])
-inventory_file = st.file_uploader("Upload Inventory Report", type=["xlsx"])
-# Define source_files folder
-source_files_folder = 'source_files'
-# Create the directory if it doesn't exist
-os.makedirs(source_files_folder, exist_ok=True)
-# Save the uploaded files to the source_files folder
-if ob_report_file:
-	with open(os.path.join(source_files_folder, ob_report_file.name), "wb") as f:
-		f.write(ob_report_file.getbuffer())
-if weekly_inventory_file:
-	with open(os.path.join(source_files_folder, weekly_inventory_file.name), "wb") as f:
-		f.write(weekly_inventory_file.getbuffer())
-if inventory_file:
-	with open(os.path.join(source_files_folder, inventory_file.name), "wb") as f:
-		f.write(inventory_file.getbuffer())
-if st.button("Process Files"):
-	# List all files in the directory
-	all_files = os.listdir(source_files_folder)
-	# Define the regular expression pattern
-	ob_info_file_pattern = re.compile(r'^出库单报表.*\.xlsx$')
-	weekly_inventory_file_pattern = re.compile(r'^库存快照报.*\.xlsx$')
-	inventory_file_pattern = re.compile(r'^库存明细.*\.xlsx$')
-	# Filter files that match the pattern
-	ob_info_matching_files = [f for f in all_files if ob_info_file_pattern.match(f)]
-	weekly_inventory_matching_files = [f for f in all_files if weekly_inventory_file_pattern.match(f)]
-	inventory_matching_files = [f for f in all_files if inventory_file_pattern.match(f)]
+def read_files():
+	# Declare the global variables
+	global goods_info, outbound_info, weekly_inventory, inventory
 	# Check if any matching files are found
+	if goods_info_matching_files:
+		# Construct the full path of the first matching file
+		goods_info_file_path = os.path.join(source_files_folder, goods_info_matching_files[0])
+		# Read the first matching file
+		goods_info = pd.read_excel(goods_info_file_path)
+		# Convert the "货品编码" column to string type
+		goods_info["货品编码"] = goods_info["货品编码"].astype(str)
+	else:
+		raise FileNotFoundError("No file starting with '货品' found in the specified folder.")
 	if ob_info_matching_files:
 		# Construct the full path of the first matching file
 		ob_info_file_path = os.path.join(source_files_folder, ob_info_matching_files[0])
@@ -76,17 +51,76 @@ if st.button("Process Files"):
 	else:
 		raise FileNotFoundError("No file starting with '库存明细' found in the specified folder.")
 
+# Set the page configuration
+st.set_page_config(page_title="Inventory Visualizer",
+				   page_icon=":bar_chart:",
+				   layout="centered")
+# Reset the web app
+reset()
+# Define the title of the web app
+st.title("Inventory Visualizer")
+# File uploader
+goods_report_file = st.file_uploader("Upload Goods Report", type=["xlsx"])
+ob_report_file = st.file_uploader("Upload Outbound Report", type=["xlsx"])
+weekly_inventory_file = st.file_uploader("Upload Weekly Inventory Report", type=["xlsx"])
+inventory_file = st.file_uploader("Upload Inventory Report", type=["xlsx"])
+# Create three radio buttons
+selection = st.radio("Select Desired Report", ["动销", "移位建议", "Selection 3"], horizontal=True)
+# Define source_files folder
+source_files_folder = 'source_files'
+# Create the directory if it doesn't exist
+os.makedirs(source_files_folder, exist_ok=True)
+# Save the uploaded files to the source_files folder
+if goods_report_file:
+	with open(os.path.join(source_files_folder, goods_report_file.name), "wb") as f:
+		f.write(goods_report_file.getbuffer())
+if ob_report_file:
+	with open(os.path.join(source_files_folder, ob_report_file.name), "wb") as f:
+		f.write(ob_report_file.getbuffer())
+if weekly_inventory_file:
+	with open(os.path.join(source_files_folder, weekly_inventory_file.name), "wb") as f:
+		f.write(weekly_inventory_file.getbuffer())
+if inventory_file:
+	with open(os.path.join(source_files_folder, inventory_file.name), "wb") as f:
+		f.write(inventory_file.getbuffer())
+# List all files in the directory
+all_files = os.listdir(source_files_folder)
+# Define the regular expression pattern
+goods_info_file_pattern = re.compile(r'^货品.*\.xlsx$')
+ob_info_file_pattern = re.compile(r'^出库单报表.*\.xlsx$')
+weekly_inventory_file_pattern = re.compile(r'^库存快照报.*\.xlsx$')
+inventory_file_pattern = re.compile(r'^库存明细.*\.xlsx$')
+# Filter files that match the pattern
+goods_info_matching_files = [f for f in all_files if goods_info_file_pattern.match(f)]
+ob_info_matching_files = [f for f in all_files if ob_info_file_pattern.match(f)]
+weekly_inventory_matching_files = [f for f in all_files if weekly_inventory_file_pattern.match(f)]
+inventory_matching_files = [f for f in all_files if inventory_file_pattern.match(f)]
+
+if st.button("Process Files"):
+	# Check if any matching files are found
+	read_files()
+	# For goods info, trim the columns, only keep columns with indices of names "货品编码", "长", "宽", "高", "重量"
+	goods_info_trimmed = goods_info[["货品编码", "长", "宽", "高", "重量"]].groupby("货品编码").first()
+	# Remove rows that have empty "长", "宽", "高", "重量"
+	goods_info_trimmed = goods_info_trimmed.dropna(subset=["长", "宽", "高", "重量"])
+	# Slice "in" at the end of "长", "宽", and "高" columns for each "货品编码"
+	goods_info_trimmed["长"] = goods_info_trimmed["长"].astype(str).apply(lambda x: str(x[:-2]))
+	goods_info_trimmed["宽"] = goods_info_trimmed["宽"].astype(str).apply(lambda x: str(x[:-2]))
+	goods_info_trimmed["高"] = goods_info_trimmed["高"].astype(str).apply(lambda x: str(x[:-2]))
+	# Remove "lb" at the end of "重量" column for each "货品编码"
+	goods_info_trimmed["重量"] = goods_info_trimmed["重量"].astype(str).apply(lambda x: str(x[:-2]))
+	# Calculate the volume of each item
+	goods_info_trimmed["体积"] = goods_info_trimmed["长"].astype(float) * goods_info_trimmed["宽"].astype(float) * goods_info_trimmed["高"].astype(float)
+	# Limit the decimal places to 2
+	goods_info_trimmed["体积"] = goods_info_trimmed["体积"].apply(lambda x: round(x, 2))
 	# For outbound info, trim the columns, only keep columns with indices of names "货品编码" and "出库货品数量"
 	outbound_info_trimmed = outbound_info[["外部单号", "物流运单号", "拣选单号", "出库单状态", "货品编码", "出库货品数量", "货品的长", "货品的宽", "货品的高"]]
 	# For outbound info, remove rows with "出库单状态" equal to "已取消"
 	outbound_info_trimmed = outbound_info_trimmed[outbound_info_trimmed["出库单状态"] != "已取消"]
-	# Calculate the volume of each item
-	outbound_info_trimmed["体积"] = outbound_info_trimmed["货品的长"] * outbound_info_trimmed["货品的宽"] * outbound_info_trimmed["货品的高"]
 	# For weekly inventory, trim the columns, only keep columns with indices of names "货品编码" and "库位库存"
 	weekly_inventory_trimmed = weekly_inventory[["货品编码", "库位库存"]]
 	# For inventory, trim the columns, only keep columns with indices of names "库位编码", "货品编码" and "总库存"
 	inventory_trimmed = inventory[["库位编码", "货品编码", "总库存"]]
-
 	# For outbound info, use "货品编码" as the key, sum up the "出库货品数量" for each unique "货品编码"
 	outbound_info_grouped = outbound_info_trimmed.groupby("货品编码").sum()
 	# Calculate the average of total outbound quantity for each unique "货品编码"
@@ -129,12 +163,15 @@ if st.button("Process Files"):
 	inventory_grouped["库位编码"] = inventory_trimmed.groupby("货品编码")["库位编码"].apply(list)
 	# Remove duplicate "库位编码" for each unique "货品编码"
 	inventory_grouped["库位编码"] = inventory_grouped["库位编码"].apply(lambda x: list(set(x)))
+	# Remove strings start with "DMG" and end with "ZCW" in "库位编码" for each unique "货品编码"
+	inventory_grouped["库位编码"] = inventory_grouped["库位编码"].apply(lambda x: [i for i in x if not i.startswith("DMG") and not i.endswith("ZCW")])
 	# Sort the "库位编码" for each unique "货品编码" alphabetically
 	inventory_grouped["库位编码"] = inventory_grouped["库位编码"].apply(lambda x: sorted(x))
 	# Count the number of unique "库位编码" for each unique "货品编码"
 	inventory_grouped["库位数量"] = inventory_grouped["库位编码"].apply(len)
 	# Use "货品编码" as the key, merge three dataframes
-	result = pd.merge(inventory_grouped, weekly_inventory_grouped, how="left", on="货品编码")
+	result = pd.merge(inventory_grouped, goods_info_trimmed, how="left", on="货品编码")
+	result = pd.merge(result, weekly_inventory_grouped, how="left", on="货品编码")
 	result = pd.merge(result, outbound_info_grouped, how="left", on="货品编码")
 	# Calculate outbound ratio
 	result["出库比例"] = result["平均每天出库量"] / result["平均每天库存量"]
@@ -160,12 +197,42 @@ if st.button("Process Files"):
 	choices = ["B", "C", "D", "E", "F", "G"]
 	# Apply conditions to create 动销等级 column
 	result["动销等级"] = np.select(conditions, choices, default="N/A")
-	# Only keep rows that "出库比例" is not NaN, infinity, and 0
-	# result = result[(result["出库比例"].notnull()) & (result["出库比例"] != float("inf")) & (result["出库比例"] != 0)]
-	# Sort the result by "动销等级" in descending order
-	result = result.sort_values(by="动销等级", ascending=False)
-	# Format "出库比例" as percentage
-	result["出库比例"] = result["出库比例"].apply(lambda x: f"{x:.2%}")
-
-	# print the result with only "库位编码", "总库存", "出库货品数量", "出库比例" columns
-	st.write(result[["库位编码", "库位数量", "总库存", "平均每天库存量", "出库货品数量", "平均每天出库量", "出库比例", "周转天数", "体积", "总库存体积", "总出库体积", "动销等级"]])
+	# If the user selects "动销" and clicks the "Process Files" button
+	if selection == "动销":
+		# Only keep rows that "出库比例" is not NaN, infinity, and 0
+		# result = result[(result["出库比例"].notnull()) & (result["出库比例"] != float("inf")) & (result["出库比例"] != 0)]
+		# Sort the result by "动销等级" in descending order
+		result = result.sort_values(by="动销等级", ascending=False)
+		# Limit the decimal places to 2
+		result["出库比例"] = result["出库比例"].apply(lambda x: round(x, 2))
+		# print the result with only "库位编码", "总库存", "出库货品数量", "出库比例" columns
+		st.write(result[["库位编码", "库位数量", "总库存", "平均每天库存量", "出库货品数量", "平均每天出库量", "出库比例", "周转天数", "体积", "总库存体积", "总出库体积", "动销等级"]])
+	# If the user selects "Selection 2" and clicks the "Process Files" button
+	elif selection == "移位建议":
+		# For ranks that are "E", "F", and "G" from column "动销等级", if the product exists in both X and Y sections from "库位编码",
+		# select one section from X and Y randomly, and remove the other sections, put it in the "移位建议" column.
+		if "动销等级" in result.columns:
+			# Select the rows that have "动销等级" of "E", "F", and "G"
+			rank_e = result[result["动销等级"] == "E"]
+			rank_f = result[result["动销等级"] == "F"]
+			rank_g = result[result["动销等级"] == "G"]
+			# Initialize the "移位建议" column with empty strings
+			result["移位建议"] = ""
+			# For each row in "库位编码" column, if the product exists in X or Y sections,
+			# select the first section occurrence from either X or Y, put it in the "移位建议" column.
+			for i in range(len(result)):
+				# X and Y are letters 
+				# If the product exists in both X and Y sections
+				if "X" in result["库位编码"].iloc[i] and "Y" in result["库位编码"].iloc[i]:
+					# Select the first section occurrence from X and Y
+					result["移位建议"].iloc[i] = result["库位编码"].iloc[i][0]
+				# If the product exists in X section
+				elif "X" in result["库位编码"].iloc[i]:
+					# Select the first section occurrence from X
+					result["移位建议"].iloc[i] = "X"
+				# If the product exists in Y section
+				elif "Y" in result["库位编码"].iloc[i]:
+					# Select the first section occurrence from Y
+					result["移位建议"].iloc[i] = "Y"
+		# print the result with only "库位编码", "总库存", "出库货品数量", "出库比例" columns
+		st.write(result[["库位编码", "库位数量", "总库存", "动销等级", "移位建议"]])
