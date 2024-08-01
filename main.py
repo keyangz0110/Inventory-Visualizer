@@ -138,7 +138,7 @@ if st.button("Process Files"):
 	# Remove duplicate "物流运单号" for each unique "货品编码"
 	outbound_info_grouped["物流运单号"] = outbound_info_grouped["物流运单号"].apply(lambda x: list(set(x)))
 	# Sort the "物流运单号" for each unique "货品编码" alphabetically
-	outbound_info_grouped["物流运单号"] = outbound_info_grouped["物流运单号"].apply(lambda x: sorted(x))
+	# outbound_info_grouped["物流运单号"] = outbound_info_grouped["物流运单号"].apply(lambda x: sorted(x))
 	# Use "货品编码" as the key, find all "拣选单号" for each unique "货品编码"
 	outbound_info_grouped["拣选单号"] = outbound_info_trimmed.groupby("货品编码")["拣选单号"].apply(list)
 	# Remove duplicate "拣选单号" for each unique "货品编码"
