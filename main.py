@@ -218,21 +218,65 @@ if st.button("Process Files"):
 			rank_g = result[result["动销等级"] == "G"]
 			# Initialize the "移位建议" column with empty strings
 			result["移位建议"] = ""
+			# To determine if the product exists in X or Y sections, check if "X" or "Y" letters are in the "库位编码" column.
+			# If the set contains elements start with "X" or "Y", select the first occurrence of "X" or "Y" and put it in the "移位建议" column.
 			# For each row in "库位编码" column, if the product exists in X or Y sections,
 			# select the first section occurrence from either X or Y, put it in the "移位建议" column.
-			for i in range(len(result)):
-				# X and Y are letters 
-				# If the product exists in both X and Y sections
-				if "X" in result["库位编码"].iloc[i] and "Y" in result["库位编码"].iloc[i]:
-					# Select the first section occurrence from X and Y
-					result["移位建议"].iloc[i] = result["库位编码"].iloc[i][0]
-				# If the product exists in X section
-				elif "X" in result["库位编码"].iloc[i]:
-					# Select the first section occurrence from X
-					result["移位建议"].iloc[i] = "X"
-				# If the product exists in Y section
-				elif "Y" in result["库位编码"].iloc[i]:
-					# Select the first section occurrence from Y
-					result["移位建议"].iloc[i] = "Y"
+			for idx, row in rank_e.iterrows():
+				location_list = row["库位编码"]
+				if isinstance(location_list, list):
+					for location in location_list:
+						if "X" in location:
+							result.at[idx, "移位建议"] = location
+							break
+						elif "Y" in location:
+							result.at[idx, "移位建议"] = location
+							break
+			for idx, row in rank_f.iterrows():
+				location_list = row["库位编码"]
+				if isinstance(location_list, list):
+					for location in location_list:
+						if "X" in location:
+							result.at[idx, "移位建议"] = location
+							break
+						elif "Y" in location:
+							result.at[idx, "移位建议"] = location
+							break
+			for idx, row in rank_g.iterrows():
+				location_list = row["库位编码"]
+				if isinstance(location_list, list):
+					for location in location_list:
+						if "X" in location:
+							result.at[idx, "移位建议"] = location
+							break
+						elif "Y" in location:
+							result.at[idx, "移位建议"] = location
+							break
+			# Select the rows that have "动销等级" of "B", "C", and "D"
+			rank_b = result[result["动销等级"] == "B"]
+			rank_c = result[result["动销等级"] == "C"]
+			rank_d = result[result["动销等级"] == "D"]
+
+			for idx, row in rank_b.iterrows():
+				location_list = row["库位编码"]
+				if isinstance(location_list, list):
+					for location in location_list:
+						if "S1" in location or "S2" in location:
+							result.at[idx, "移位建议"] = "K, M, N, X, Y"
+							break
+			for idx, row in rank_c.iterrows():
+				location_list = row["库位编码"]
+				if isinstance(location_list, list):
+					for location in location_list:
+						if "S1" in location or "S2" in location:
+							result.at[idx, "移位建议"] = "K, M, N, X, Y"
+							break
+			for idx, row in rank_d.iterrows():
+				location_list = row["库位编码"]
+				if isinstance(location_list, list):
+					for location in location_list:
+						if "S1" in location or "S2" in location:
+							result.at[idx, "移位建议"] = "K, M, N, X, Y"
+							break
 		# print the result with only "库位编码", "总库存", "出库货品数量", "出库比例" columns
 		st.write(result[["库位编码", "库位数量", "总库存", "动销等级", "移位建议"]])
