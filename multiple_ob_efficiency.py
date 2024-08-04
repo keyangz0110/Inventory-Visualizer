@@ -172,6 +172,9 @@ if st.button("Process File"):
 		'件效': [shift_summary['复核打包完成件数'].sum() / shift_summary['总工时'].sum()],
 		'平均每小时复核打包件数': [shift_summary['复核打包完成件数'].sum() / shift_summary['总工时'].sum()]
 	})
+	# Drop rows with index containing 'Other'
+	shift_summary = shift_summary[~shift_summary['班次'].str.contains('Other')]
+	overall_summary = overall_summary[~overall_summary['班次'].str.contains('Other')]
 	# Define output_files folder
 	output_files_folder = 'output_files'
 	# Create the directory if it doesn't exist
