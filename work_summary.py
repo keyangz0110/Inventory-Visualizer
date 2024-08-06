@@ -2,9 +2,26 @@ import pandas as pd
 import os
 import re
 import shutil
-
+import uuid
+import time
 import streamlit as st
 
+# Remove directory with timer function
+def remove_directory(path):
+	# Get the current time
+	current_time = time.time()
+	# Get the age of the directory
+	directory_age = current_time - os.path.getmtime(path)
+	# Check if the directory is older than 6 hours
+	if directory_age > 21600:  # 21600 seconds = 6 hours
+		try:
+			# Remove the directory
+			shutil.rmtree(path)
+			# Print the message
+			print(f"Removed directory: {path}")
+		except OSError as e:
+			# Print the error message
+			print(f"Error: {e.strerror}")
 # Reset function
 def reset():
 	# Remove the source_files folder
@@ -21,17 +38,21 @@ def read_files():
 	else:
 		raise FileNotFoundError("No file starting with '员工作业汇总表' found in the specified folder.")
 # Reset the web app
-reset()
+# reset()
 # Define the title of the web app
 st.title("Operator Work Summary Analysis")
+# Generate a unique identifier for the session
+session_id = str(uuid.uuid4())
 # Load the data and keep only the required columns
 uploaded_file = st.file_uploader("Upload Work Summary File", type=['xlsx'])
 # Create three radio buttons
 selection = st.radio("Select Report Type", ["出库拣选", "出库复核"], horizontal=True)
 # Define source_files folder
-source_files_folder = 'source_files'
+source_files_folder = f'source_files_{session_id}'
 # Create the directory if it doesn't exist
 os.makedirs(source_files_folder, exist_ok=True)
+# Start remove directory timer
+remove_directory(source_files_folder)
 # Save the uploaded files to the source_files folder
 if uploaded_file:
 	with open(os.path.join(source_files_folder, uploaded_file.name), "wb") as f:
