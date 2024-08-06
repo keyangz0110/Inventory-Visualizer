@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+import threading
 import re
 import shutil
 import uuid
@@ -7,27 +8,36 @@ import time
 import streamlit as st
 
 # Remove directory with timer function
-def remove_directory(path):
-	# Get the current time
-	current_time = time.time()
-	# Get the age of the directory
-	directory_age = current_time - os.path.getmtime(path)
-	# Check if the directory is older than 6 hours
-	if directory_age > 21600:  # 21600 seconds = 6 hours
-		try:
-			# Remove the directory
-			shutil.rmtree(path)
-			# Print the message
-			print(f"Removed directory: {path}")
-		except OSError as e:
-			# Print the error message
-			print(f"Error: {e.strerror}")
-# Reset function
-def reset():
-	# Remove the source_files folder
-	shutil.rmtree("source_files", ignore_errors=True)
-	# Remove the output_files folder
-	shutil.rmtree("output_files", ignore_errors=True)
+def remove_directory(path, time_limit=21600):  # Default time limit is 6 hours (21600 seconds)
+	while True:
+		# Get the current time
+		current_time = time.time()
+		# Check if the directory exists
+		if os.path.exists(path):
+			# Get the age of the directory
+			directory_age = current_time - os.path.getmtime(path)
+			# Check if the directory is older than the time limit
+			if directory_age > time_limit:
+				try:
+					# Remove the directory
+					shutil.rmtree(path)
+					# Print the message
+					print(f"Removed directory: {path}")
+					break  # Exit the loop after removing the directory
+				except OSError as e:
+					# Print the error message
+					print(f"Error: {e.strerror}")
+					break  # Exit the loop if an error occurs
+		else:
+			print(f"Directory does not exist: {path}")
+			break  # Exit the loop if the directory does not exist
+		# Sleep for a period before checking again
+		time.sleep(3600)  # Check every 1 hour
+# Start the remove_directory function in a separate thread
+def remove_directory_thread(path, time_limit=60):
+	thread = threading.Thread(target=remove_directory, args=(path, time_limit))
+	thread.daemon = True  # Set as a daemon thread to exit when the main program exits
+	thread.start()
 # Read files function
 def read_files():
 	global uploaded_file
@@ -39,13 +49,19 @@ def read_files():
 			uploaded_file = pd.read_excel(uploaded_file_file_path)
 	else:
 		raise FileNotFoundError("No file starting with '出库单报表' found in the specified folder.")
-	  
-# Reset the web app
-# reset()
 # Define the title of the web app
 st.title("Multi-Day Outbound Efficiency Analysis")
-# Generate a unique identifier for the session
-session_id = str(uuid.uuid4())
+# Ensure the source_files directory is created only once
+if 'source_files_folder' not in st.session_state:
+	# Generate a unique identifier for the session
+	session_id = str(uuid.uuid4())
+	source_files_folder = f'source_files_{session_id}'
+	st.session_state['source_files_folder'] = source_files_folder
+else:
+	source_files_folder = st.session_state['source_files_folder']
+# Create the directory if it doesn't exist
+if not os.path.exists(source_files_folder):
+	os.makedirs(source_files_folder)
 # User input for the start and end date
 start_date = st.date_input("Please Select the Start Date")
 end_date = st.date_input("Please Select the End Date")
@@ -66,12 +82,8 @@ for date in date_range:
 	shift_hours[f"{date}_大夜班"] = night_shift_hours
 # Load the data and keep only the required columns
 uploaded_file = st.file_uploader("Upload Outbound Report File", type=['xlsx'])
-# Define source_files folder
-source_files_folder = f'source_files_{session_id}'
-# Create the directory if it doesn't exist
-os.makedirs(source_files_folder, exist_ok=True)
 # Start remove directory timer
-remove_directory(source_files_folder)
+remove_directory_thread(source_files_folder)
 # Save the uploaded files to the source_files folder
 if uploaded_file:
 	with open(os.path.join(source_files_folder, uploaded_file.name), "wb") as f:
@@ -196,12 +208,19 @@ if st.button("Process File"):
 	# Drop rows with index containing 'Other'
 	shift_summary = shift_summary[~shift_summary['班次'].str.contains('Other')]
 	overall_summary = overall_summary[~overall_summary['班次'].str.contains('Other')]
-	# Define output_files folder
-	output_files_folder = f'output_files_{session_id}'
+	# Ensure the output_files directory is created only once
+	if 'output_files_folder' not in st.session_state:
+		# Generate a unique identifier for the session
+		session_id = str(uuid.uuid4())
+		output_files_folder = f'output_files_{session_id}'
+		st.session_state['output_files_folder'] = output_files_folder
+	else:
+		output_files_folder = st.session_state['output_files_folder']
 	# Create the directory if it doesn't exist
-	os.makedirs(output_files_folder, exist_ok=True)
+	if not os.path.exists(output_files_folder):
+		os.makedirs(output_files_folder)
 	# Start remove directory timer
-	remove_directory(output_files_folder)
+	remove_directory_thread(output_files_folder)
 	# Define new file name
 	new_filename = f"summary-result-{start_date}-to-{end_date}.xlsx"
 	# Save the summary results to an Excel file
