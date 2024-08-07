@@ -91,36 +91,56 @@ if st.button("Analyze"):
 		# Flatten the MultiIndex columns
 		pivot_table.columns = ['_'.join(col).strip() for col in pivot_table.columns.values]
 		# Display the pivot table
-		st.write("总表")
+		st.write("出库拣选总表")
 		st.write(pivot_table)
 		# Create two separate pivot tables for '作业效率' and '总作业件数'
 		# For filter entries, combine '出库拣选/普通单件' and '出库拣选/混合包裹' together
 		# For values, sum the values for each user
 		# Create a pivot table for '作业效率'
 		pivot_table_efficiency = pd.pivot_table(uploaded_file, values='作业效率', index='用户名', columns='任务类型', aggfunc='sum')
+		# Remove user name 'system' and 'wujiahua'
+		pivot_table_efficiency = pivot_table_efficiency.drop(index=['system', 'wujiahua'], errors='ignore')
+		# Calculate Q1 (25th percentile) and Q3 (75th percentile)
+		Q1 = pivot_table_efficiency.quantile(0.25)
+		Q3 = pivot_table_efficiency.quantile(0.75)
+		# Calculate IQR
+		IQR = Q3 - Q1
+		# Filter out the outliers
+		pivot_table_efficiency = pivot_table_efficiency[~((pivot_table_efficiency < (Q1 - 1.5 * IQR)) | (pivot_table_efficiency > (Q3 + 1.5 * IQR))).any(axis=1)]
 		# Fill NaN values with 0
 		pivot_table_efficiency = pivot_table_efficiency.fillna(0)
 		# Combine '出库拣选/普通单件' and '出库拣选/混合包裹' together
 		pivot_table_efficiency['出库拣选/普通+混合'] = pivot_table_efficiency['出库拣选/普通单件'] + pivot_table_efficiency['出库拣选/混合包裹']
-		pivot_table_efficiency = pivot_table_efficiency.drop(columns=['出库拣选/普通单件', '出库拣选/混合包裹'])
+		pivot_table_efficiency = pivot_table_efficiency.drop(columns=['出库拣选/普通单件', '出库拣选/混合包裹', '出库拣选/其他'], errors='ignore')
 		# Create a pivot table for '总作业件数'
 		pivot_table_total = pd.pivot_table(uploaded_file, values='总作业件数', index='用户名', columns='任务类型', aggfunc='sum')
+		# Remove user name 'system' and 'wujiahua'
+		pivot_table_total = pivot_table_total.drop(index=['system', 'wujiahua'], errors='ignore')
+		# Calculate Q1 (25th percentile) and Q3 (75th percentile)
+		Q1 = pivot_table_total.quantile(0.25)
+		Q3 = pivot_table_total.quantile(0.75)
+		# Calculate IQR
+		IQR = Q3 - Q1
+		# Filter out the outliers
+		pivot_table_total = pivot_table_total[~((pivot_table_total < (Q1 - 1.5 * IQR)) | (pivot_table_total > (Q3 + 1.5 * IQR))).any(axis=1)]
 		# Fill NaN values with 0
 		pivot_table_total = pivot_table_total.fillna(0)
 		# Combine '出库拣选/普通单件' and '出库拣选/混合包裹' together
 		pivot_table_total['出库拣选/普通+混合'] = pivot_table_total['出库拣选/普通单件'] + pivot_table_total['出库拣选/混合包裹']
-		pivot_table_total = pivot_table_total.drop(columns=['出库拣选/普通单件', '出库拣选/混合包裹'])
+		pivot_table_total = pivot_table_total.drop(columns=['出库拣选/普通单件', '出库拣选/混合包裹', '出库拣选/其他'], errors='ignore')
 		# Display the pivot tables
-		st.write("作业效率")
+		st.write("出库拣选作业效率")
 		st.write(pivot_table_efficiency)
 		# Create a bar chart for '作业效率'
 		# For an individual user, display the '作业效率' for each task type
+		st.write("出库拣选作业效率柱状图")
 		st.bar_chart(pivot_table_efficiency, stack=False, color=['#4287f5', '#ff5733'])
 		# Display the pivot tables
-		st.write("总作业件数")
+		st.write("出库拣选总作业件数")
 		st.write(pivot_table_total)
 		# Create a bar chart for '总作业件数'
 		# For an individual user, display the '总作业件数' for each task type
+		st.write("出库拣选总作业件数柱状图")
 		st.bar_chart(pivot_table_total, stack=False, color=['#4287f5', '#ff5733'])
 	elif selection == "出库复核":
 		# Create pivot table with the required columns:
@@ -130,35 +150,60 @@ if st.button("Analyze"):
 		pivot_table = pivot_table.fillna(0)
 		# Flatten the MultiIndex columns
 		pivot_table.columns = ['_'.join(col).strip() for col in pivot_table.columns.values]
+		# Drop rows that values exceeds average value * 2
+		# Calculate the average value for each column
+		average_values = pivot_table.mean()
+		# Drop rows that values exceeds average value * 2
+		pivot_table = pivot_table[(pivot_table < average_values * 2).all(axis=1)]
 		# Display the pivot table
-		st.write("总表")
+		st.write("出库复核总表")
 		st.write(pivot_table)
 		# Create two separate pivot tables for '作业效率' and '总作业件数'
 		# For filter entries, combine '出库拣选/普通单件' and '出库拣选/混合包裹' together
 		# For values, sum the values for each user
 		# Create a pivot table for '作业效率'
 		pivot_table_efficiency = pd.pivot_table(uploaded_file, values='作业效率', index='用户名', columns='任务类型', aggfunc='sum')
+		# Remove user name 'system' and 'wujiahua'
+		pivot_table_efficiency = pivot_table_efficiency.drop(index=['system', 'wujiahua'], errors='ignore')
+		# Calculate Q1 (25th percentile) and Q3 (75th percentile)
+		Q1 = pivot_table_efficiency.quantile(0.25)
+		Q3 = pivot_table_efficiency.quantile(0.75)
+		# Calculate IQR
+		IQR = Q3 - Q1
+		# Filter out the outliers
+		pivot_table_efficiency = pivot_table_efficiency[~((pivot_table_efficiency < (Q1 - 1.5 * IQR)) | (pivot_table_efficiency > (Q3 + 1.5 * IQR))).any(axis=1)]
 		# Fill NaN values with 0
 		pivot_table_efficiency = pivot_table_efficiency.fillna(0)
 		# Combine '出库拣选/普通单件' and '出库拣选/混合包裹' together
 		pivot_table_efficiency['出库复核/普通+混合'] = pivot_table_efficiency['出库复核/普通单件'] + pivot_table_efficiency['出库复核/混合包裹']
-		pivot_table_efficiency = pivot_table_efficiency.drop(columns=['出库复核/普通单件', '出库复核/混合包裹'])
+		pivot_table_efficiency = pivot_table_efficiency.drop(columns=['出库复核/普通单件', '出库复核/混合包裹', '出库复核/其他'], errors='ignore')
 		# Create a pivot table for '总作业件数'
 		pivot_table_total = pd.pivot_table(uploaded_file, values='总作业件数', index='用户名', columns='任务类型', aggfunc='sum')
+		# Remove user name 'system' and 'wujiahua'
+		pivot_table_total = pivot_table_total.drop(index=['system', 'wujiahua'], errors='ignore')
+		# Calculate Q1 (25th percentile) and Q3 (75th percentile)
+		Q1 = pivot_table_total.quantile(0.25)
+		Q3 = pivot_table_total.quantile(0.75)
+		# Calculate IQR
+		IQR = Q3 - Q1
+		# Filter out the outliers
+		pivot_table_total = pivot_table_total[~((pivot_table_total < (Q1 - 1.5 * IQR)) | (pivot_table_total > (Q3 + 1.5 * IQR))).any(axis=1)]
 		# Fill NaN values with 0
 		pivot_table_total = pivot_table_total.fillna(0)
 		# Combine '出库拣选/普通单件' and '出库拣选/混合包裹' together
 		pivot_table_total['出库复核/普通+混合'] = pivot_table_total['出库复核/普通单件'] + pivot_table_total['出库复核/混合包裹']
-		pivot_table_total = pivot_table_total.drop(columns=['出库复核/普通单件', '出库复核/混合包裹'])
+		pivot_table_total = pivot_table_total.drop(columns=['出库复核/普通单件', '出库复核/混合包裹', '出库复核/其他'], errors='ignore')
 		# Display the pivot tables
-		st.write("作业效率")
+		st.write("出库复核作业效率")
 		st.write(pivot_table_efficiency)
 		# Create a bar chart for '作业效率'
 		# For an individual user, display the '作业效率' for each task type
+		st.write("出库复核作业效率柱状图")
 		st.bar_chart(pivot_table_efficiency, stack=False, color=['#4287f5', '#ff5733'])
 		# Display the pivot tables
-		st.write("总作业件数")
+		st.write("出库复核总作业件数")
 		st.write(pivot_table_total)
 		# Create a bar chart for '总作业件数'
 		# For an individual user, display the '总作业件数' for each task type
+		st.write("出库复核总作业件数柱状图")
 		st.bar_chart(pivot_table_total, stack=False, color=['#4287f5', '#ff5733'])
