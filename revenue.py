@@ -101,10 +101,11 @@ if st.button("Analyze"):
 	data = data[~data['出库单状态'].isin(['分配失败', '已取消', '已拣选', '待拣选', '拣选中'])]
 
 	# Create new columns for date and hour
+	date_format = '%m-%d-%Y %I:%M:%S %p'  # Specify the date format
 	data['创建时间'] = pd.to_datetime(data['创建时间'], errors='coerce')
-	data['汇波完成时间'] = pd.to_datetime(data['汇波完成时间'], errors='coerce')
-	data['拣选完成时间'] = pd.to_datetime(data['拣选完成时间'], errors='coerce')
-	data['复核完成时间'] = pd.to_datetime(data['复核完成时间'], errors='coerce')
+	data['汇波完成时间'] = pd.to_datetime(data['汇波完成时间'], format=date_format, errors='coerce')
+	data['拣选完成时间'] = pd.to_datetime(data['拣选完成时间'], format=date_format, errors='coerce')
+	data['复核完成时间'] = pd.to_datetime(data['复核完成时间'], format=date_format, errors='coerce')
 
 	data['创建日期'] = data['创建时间'].dt.date
 	data['创建小时'] = data['创建时间'].dt.hour
@@ -139,7 +140,8 @@ if st.button("Analyze"):
 		return revenue
 
 	# Calculate revenue based on order number
-	grouped = filtered_data.groupby('出库单号').apply(calculate_order_revenue).reset_index(name='收入')
+	grouped = filtered_data.groupby('出库单号').apply(calculate_order_revenue).reset_index()
+	grouped.columns = ['出库单号', '收入']
 
 	# Merge the revenue data with the filtered data
 	filtered_data = pd.merge(filtered_data, grouped, on='出库单号')
@@ -150,7 +152,7 @@ if st.button("Analyze"):
 									labels=pd.date_range(start_date, end_date, freq='D').strftime('%Y-%m-%d'))
 
 	# Calculate daily summary
-	daily_summary = filtered_data.groupby('统计日期').agg(
+	daily_summary = filtered_data.groupby('统计日期', observed=False).agg(
 		总收入=('收入', 'sum'),
 		总包裹数=('出库货品数量', 'sum'),
 		总订单数=('出库单号', 'nunique')
