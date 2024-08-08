@@ -35,7 +35,7 @@ def remove_directory(path, time_limit=21600):  # Default time limit is 6 hours (
 		# Sleep for a period before checking again
 		time.sleep(3600)  # Check every 1 hour
 # Start the remove_directory function in a separate thread
-def remove_directory_thread(path, time_limit=60):
+def remove_directory_thread(path, time_limit=21600):
 	thread = threading.Thread(target=remove_directory, args=(path, time_limit))
 	thread.daemon = True  # Set as a daemon thread to exit when the main program exits
 	thread.start()
