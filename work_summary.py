@@ -64,7 +64,7 @@ if not os.path.exists(source_files_folder):
 	os.makedirs(source_files_folder)
 # Load the data and keep only the required columns
 uploaded_file = st.file_uploader("Upload Work Summary File", type=['xlsx'])
-# Create three radio buttons
+# Create radio buttons for selecting the report type
 selection = st.radio("Select Report Type", ["出库拣选", "出库复核"], horizontal=True)
 # Start remove directory timer
 remove_directory_thread(source_files_folder)
