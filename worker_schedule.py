@@ -51,7 +51,7 @@ def read_files():
 		raise FileNotFoundError("No file starting with '人员名单' found in the specified folder.")
 
 # Define the title of the web app
-st.title("Operator Work Summary Analysis")
+st.title("Worker Schedule Generator")
 # Ensure the source_files directory is created only once
 if 'source_files_folder' not in st.session_state:
 	# Generate a unique identifier for the session
@@ -65,6 +65,27 @@ if not os.path.exists(source_files_folder):
 	os.makedirs(source_files_folder)
 # Load the data and keep only the required columns
 uploaded_file = st.file_uploader("Upload Name List", type=['xlsx'])
+# Create radio buttons for selecting the report type
+selection = st.radio("Select Type", ["入库", "出库"], horizontal=True)
+# Create text inputs for entering the data
+if selection == "入库":
+	st.text_input("请输入周一上架数量")
+	st.text_input("请输入周二上架数量")
+	st.text_input("请输入周三上架数量")
+	st.text_input("请输入周四上架数量")
+	st.text_input("请输入周五上架数量")
+	st.text_input("请输入周六上架数量")
+	st.text_input("请输入周日上架数量")
+elif selection == "出库":
+	st.text_input("请输入周一出库单量")
+	st.text_input("请输入周二出库单量")
+	st.text_input("请输入周三出库单量")
+	st.text_input("请输入周四出库单量")
+	st.text_input("请输入周五出库单量")
+	st.text_input("请输入周六出库单量")
+	st.text_input("请输入周日出库单量")
+else:
+	raise ValueError("Invalid selection.")
 # Start remove directory timer
 remove_directory_thread(source_files_folder)
 # Save the uploaded files to the source_files folder
