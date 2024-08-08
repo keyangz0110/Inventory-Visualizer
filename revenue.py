@@ -68,11 +68,16 @@ start_date = st.date_input("Please Select the Start Date")
 end_date = st.date_input("Please Select the End Date")
 # Generate date range between start and end date
 date_range = pd.date_range(start_date, end_date).date
-#
+# Initialize dictionaries to store total hours and hourly rate
+total_hours_dict = {}
+hourly_rate_dict = {}
+# User input for total hours and hourly rate
 for date in date_range:
+	# Convert date to string
+	date = str(date)
 	# User input for total hours and hourly rate
-	total_hours = st.text_input(f"请输入{date}的总工时: ")
-	hourly_rate = st.text_input(f"请输入{date}的每个工时的费用: ")
+	total_hours_dict[date] = st.text_input(f"请输入{date}的总工时: ", key=f"total_hours_{date}")
+	hourly_rate_dict[date] = st.text_input(f"请输入{date}的每个工时的费用: ", key=f"hourly_rate_{date}")
 # Load the data and keep only the required columns
 uploaded_file = st.file_uploader("Upload Outbound Report File", type=['xlsx'])
 # Start remove directory timer
@@ -140,8 +145,7 @@ if st.button("Analyze"):
 		return revenue
 
 	# Calculate revenue based on order number
-	grouped = filtered_data.groupby('出库单号').apply(calculate_order_revenue).reset_index()
-	grouped.columns = ['出库单号', '收入']
+	grouped = pd.DataFrame(filtered_data).groupby('出库单号').apply(calculate_order_revenue).reset_index(name='收入')
 
 	# Merge the revenue data with the filtered data
 	filtered_data = pd.merge(filtered_data, grouped, on='出库单号')
@@ -164,8 +168,8 @@ if st.button("Analyze"):
 
 	for index, row in daily_summary.iterrows():
 		date_str = row['统计日期']
-		total_hours = float(total_hours)
-		hourly_rate = float(hourly_rate)
+		total_hours = float(total_hours_dict[date_str])
+		hourly_rate = float(hourly_rate_dict[date_str])
 		daily_summary.at[index, '人力成本'] = total_hours * hourly_rate
 		daily_summary.at[index, '盈亏'] = daily_summary.at[index, '总收入'] - daily_summary.at[index, '人力成本']
 
