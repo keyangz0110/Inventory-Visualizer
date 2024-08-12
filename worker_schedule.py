@@ -330,15 +330,11 @@ if st.button("Generate"):
 				selected_workers[day]['Printing'] += [None] * (max_length - len(selected_workers[day]['Printing']))
 				selected_workers[day]['Packing'] += [None] * (max_length - len(selected_workers[day]['Packing']))
 				selected_workers[day]['Gaylord'] += [None] * (max_length - len(selected_workers[day]['Gaylord']))
-				print(selected_workers[day]['Picking'])
 				# Create a DataFrame for the day
 				df = pd.DataFrame(selected_workers[day])
-				# Drop the None values
-				df = df.dropna()
 				# Write the DataFrame to a specific sheet
 				df.to_excel(writer, sheet_name=day.capitalize(), index=False)
-		# Display the table
-		st.dataframe(df)
+
 		# Provide a download button for the saved file
 		with open(os.path.join(output_files_folder, filename), "rb") as file:
 			btn = st.download_button(
