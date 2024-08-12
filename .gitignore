@@ -31,3 +31,5 @@ Thumbs.db
 /source_files*
 /output_files*
 /venv*
+/.streamlit*
+secrets.toml
